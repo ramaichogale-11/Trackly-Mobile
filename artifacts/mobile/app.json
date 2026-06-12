@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Finance Tracker",
-    "slug": "mobile",
+    "name": "Trackly",
+    "slug": "trackly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "trackly",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -14,9 +14,12 @@
       "backgroundColor": "#4F46E5"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.trackly.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.trackly.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },

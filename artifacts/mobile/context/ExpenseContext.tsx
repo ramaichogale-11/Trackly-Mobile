@@ -1,9 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-export type Category = "Food" | "Transport" | "Shopping" | "Entertainment" | "Other";
+export type Category = "Food" | "Transport" | "Shopping" | "Entertainment" | "Savings" | "Other";
 
-export const CATEGORIES: Category[] = ["Food", "Transport", "Shopping", "Entertainment", "Other"];
+export const CATEGORIES: Category[] = ["Food", "Transport", "Shopping", "Entertainment", "Savings", "Other"];
 
 export interface Expense {
   id: string;

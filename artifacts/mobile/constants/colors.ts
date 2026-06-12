@@ -28,6 +28,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Transport: "#3B82F6",
   Shopping: "#EC4899",
   Entertainment: "#8B5CF6",
+  Savings: "#059669",
   Other: "#64748B",
 };
 
@@ -36,6 +37,7 @@ export const CATEGORY_BG: Record<string, string> = {
   Transport: "#EFF6FF",
   Shopping: "#FDF2F8",
   Entertainment: "#F5F3FF",
+  Savings: "#ECFDF5",
   Other: "#F1F5F9",
 };
 
