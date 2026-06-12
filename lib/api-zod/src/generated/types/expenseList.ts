@@ -5,7 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ExpenseItem } from './expenseItem';
 
-export interface HealthStatus {
-  status: string;
+export interface ExpenseList {
+  expenses: ExpenseItem[];
 }

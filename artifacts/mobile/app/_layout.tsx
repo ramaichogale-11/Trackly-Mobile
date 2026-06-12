@@ -6,7 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -16,32 +16,55 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BudgetProvider } from "@/context/BudgetContext";
 import { ExpenseProvider } from "@/context/ExpenseContext";
+import { AuthProvider, useAuth } from "@/lib/auth";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+function AuthGate() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+    const onLogin = segments[0] === "login";
+    if (!isAuthenticated && !onLogin) {
+      router.replace("/login");
+    } else if (isAuthenticated && onLogin) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated, isLoading, segments]);
+
+  return null;
+}
+
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="add-expense"
-        options={{
-          presentation: "modal",
-          title: "Add Expense",
-          headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
-        }}
-      />
-      <Stack.Screen
-        name="set-budget"
-        options={{
-          presentation: "modal",
-          title: "Set Budgets",
-          headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
-        }}
-      />
-    </Stack>
+    <>
+      <AuthGate />
+      <Stack screenOptions={{ headerBackTitle: "Back" }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="add-expense"
+          options={{
+            presentation: "modal",
+            title: "Add Expense",
+            headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
+          }}
+        />
+        <Stack.Screen
+          name="set-budget"
+          options={{
+            presentation: "modal",
+            title: "Set Budgets",
+            headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
+          }}
+        />
+      </Stack>
+    </>
   );
 }
 
@@ -65,15 +88,17 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <ExpenseProvider>
-            <BudgetProvider>
-              <GestureHandlerRootView>
-                <KeyboardProvider>
-                  <RootLayoutNav />
-                </KeyboardProvider>
-              </GestureHandlerRootView>
-            </BudgetProvider>
-          </ExpenseProvider>
+          <AuthProvider>
+            <ExpenseProvider>
+              <BudgetProvider>
+                <GestureHandlerRootView>
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </BudgetProvider>
+            </ExpenseProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

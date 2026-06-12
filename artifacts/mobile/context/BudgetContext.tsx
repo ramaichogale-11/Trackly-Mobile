@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-
+import { apiGet, apiPut, apiDelete } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import type { Category } from "@/context/ExpenseContext";
 
 export type BudgetLimits = Partial<Record<Category, number>>;
@@ -11,38 +11,47 @@ interface BudgetContextValue {
   isLoading: boolean;
 }
 
-const STORAGE_KEY = "@pft_budgets_v1";
-
 const BudgetContext = createContext<BudgetContextValue | null>(null);
 
 export function BudgetProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
   const [budgets, setBudgets] = useState<BudgetLimits>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
+    if (!isAuthenticated) {
+      setBudgets({});
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    apiGet("/api/budgets")
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) setBudgets(JSON.parse(data));
+        if (data?.budgets) {
+          const map: BudgetLimits = {};
+          for (const b of data.budgets as { category: Category; amount: string }[]) {
+            map[b.category] = parseFloat(b.amount);
+          }
+          setBudgets(map);
+        }
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
-  }, []);
-
-  const persist = (updated: BudgetLimits) => {
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
-  };
+  }, [isAuthenticated]);
 
   const setBudget = useCallback(async (category: Category, amount: number | null) => {
-    setBudgets((prev) => {
-      const updated = { ...prev };
-      if (amount === null || amount <= 0) {
+    if (amount === null || amount <= 0) {
+      setBudgets((prev) => {
+        const updated = { ...prev };
         delete updated[category];
-      } else {
-        updated[category] = amount;
-      }
-      persist(updated);
-      return updated;
-    });
+        return updated;
+      });
+      await apiDelete(`/api/budgets/${category}`).catch(() => {});
+    } else {
+      setBudgets((prev) => ({ ...prev, [category]: amount }));
+      await apiPut("/api/budgets", { category, amount }).catch(() => {});
+    }
   }, []);
 
   return (
