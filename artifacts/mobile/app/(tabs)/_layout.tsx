@@ -5,20 +5,29 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, Pressable, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, Pressable, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 
-function AddButton() {
+function HeaderRight() {
   const colors = useColors();
   return (
-    <Pressable
-      onPress={() => router.push("/add-expense")}
-      style={[styles.addBtn, { backgroundColor: colors.primary }]}
-      hitSlop={8}
-    >
-      <Feather name="plus" size={20} color="#fff" />
-    </Pressable>
+    <View style={styles.headerRight}>
+      <TouchableOpacity
+        onPress={() => router.push("/set-budget")}
+        style={[styles.budgetBtn, { borderColor: colors.border }]}
+        hitSlop={8}
+      >
+        <Feather name="target" size={16} color={colors.primary} />
+      </TouchableOpacity>
+      <Pressable
+        onPress={() => router.push("/add-expense")}
+        style={[styles.addBtn, { backgroundColor: colors.primary }]}
+        hitSlop={8}
+      >
+        <Feather name="plus" size={20} color="#fff" />
+      </Pressable>
+    </View>
   );
 }
 
@@ -49,7 +58,7 @@ function ClassicTabLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
-        headerRight: () => <AddButton />,
+        headerRight: () => <HeaderRight />,
         headerRightContainerStyle: { paddingRight: 16 },
         headerStyle: { backgroundColor: colors.background },
         headerTitleStyle: { fontFamily: "Inter_600SemiBold", color: colors.foreground },
@@ -113,6 +122,19 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  budgetBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+  },
   addBtn: {
     width: 34,
     height: 34,

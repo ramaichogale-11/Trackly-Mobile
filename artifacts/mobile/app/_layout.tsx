@@ -14,6 +14,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { BudgetProvider } from "@/context/BudgetContext";
 import { ExpenseProvider } from "@/context/ExpenseContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -29,6 +30,14 @@ function RootLayoutNav() {
         options={{
           presentation: "modal",
           title: "Add Expense",
+          headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
+        }}
+      />
+      <Stack.Screen
+        name="set-budget"
+        options={{
+          presentation: "modal",
+          title: "Set Budgets",
           headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
         }}
       />
@@ -57,11 +66,13 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <ExpenseProvider>
-            <GestureHandlerRootView>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
+            <BudgetProvider>
+              <GestureHandlerRootView>
+                <KeyboardProvider>
+                  <RootLayoutNav />
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </BudgetProvider>
           </ExpenseProvider>
         </QueryClientProvider>
       </ErrorBoundary>
