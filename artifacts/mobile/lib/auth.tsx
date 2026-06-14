@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { Platform } from "react-native";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
@@ -8,7 +9,7 @@ WebBrowser.maybeCompleteAuthSession();
 const AUTH_TOKEN_KEY = "auth_session_token";
 const ISSUER_URL = process.env.EXPO_PUBLIC_ISSUER_URL ?? "https://replit.com/oidc";
 
-interface User {
+export interface User {
   id: string;
   email: string | null;
   firstName: string | null;
@@ -32,7 +33,7 @@ const AuthContext = createContext<AuthContextValue>({
   logout: async () => {},
 });
 
-function getApiBaseUrl(): string {
+export function getApiBaseUrl(): string {
   if (process.env.EXPO_PUBLIC_DOMAIN) {
     return `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
   }
@@ -43,12 +44,15 @@ function getClientId(): string {
   return process.env.EXPO_PUBLIC_REPL_ID || "";
 }
 
+function isWeb(): boolean {
+  return Platform.OS === "web";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const discovery = AuthSession.useAutoDiscovery(ISSUER_URL);
-
   const redirectUri = AuthSession.makeRedirectUri();
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
@@ -63,24 +67,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
-      if (!token) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
       const apiBase = getApiBaseUrl();
-      const res = await fetch(`${apiBase}/api/auth/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
 
-      if (data.user) {
-        setUser(data.user);
+      if (isWeb()) {
+        const res = await fetch(`${apiBase}/api/auth/user`, { credentials: "include" });
+        if (!res.ok) { setUser(null); setIsLoading(false); return; }
+        const data = await res.json();
+        setUser(data.user ?? null);
       } else {
-        await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
-        setUser(null);
+        const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+        if (!token) { setUser(null); setIsLoading(false); return; }
+        const res = await fetch(`${apiBase}/api/auth/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+        } else {
+          await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+          setUser(null);
+        }
       }
     } catch {
       setUser(null);
@@ -94,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUser]);
 
   useEffect(() => {
+    if (isWeb()) return;
     if (response?.type !== "success" || !request?.codeVerifier) return;
 
     const { code, state } = response.params;
@@ -101,10 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const apiBase = getApiBaseUrl();
-        if (!apiBase) {
-          console.error("API base URL is not configured.");
-          return;
-        }
+        if (!apiBase) return;
 
         const exchangeRes = await fetch(`${apiBase}/api/mobile-auth/token-exchange`, {
           method: "POST",
@@ -119,7 +123,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (!exchangeRes.ok) {
-          console.error("Token exchange failed:", exchangeRes.status);
           setIsLoading(false);
           return;
         }
@@ -130,14 +133,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsLoading(true);
           await fetchUser();
         }
-      } catch (err) {
-        console.error("Token exchange error:", err);
+      } catch {
         setIsLoading(false);
       }
     })();
   }, [response, request, redirectUri, fetchUser]);
 
   const login = useCallback(async () => {
+    if (isWeb()) {
+      const apiBase = getApiBaseUrl();
+      window.location.href = `${apiBase}/api/login`;
+      return;
+    }
     try {
       await promptAsync();
     } catch (err) {
@@ -146,6 +153,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [promptAsync]);
 
   const logout = useCallback(async () => {
+    if (isWeb()) {
+      const apiBase = getApiBaseUrl();
+      window.location.href = `${apiBase}/api/logout`;
+      return;
+    }
     try {
       const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
       if (token) {
@@ -163,15 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
